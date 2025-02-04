@@ -23,6 +23,10 @@ actor {
   public query func greet(name : Text) : async Text {
     return "Hello, " # name # "!";
   };
+
+  public shared ({caller}) func whaomai ():async Principal{
+    return caller
+  };
 public shared ({caller}) func registeruser():async Text{
 
 
@@ -81,10 +85,25 @@ public shared ({caller}) func enter_user_search(request:Text,response:Text):asyn
         history=updatedhistory;
       };
      usersdata.put(caller,updateduser);
+     hist.put(request,new_search);
       return #ok(response)
     }
   }
 };
+
+//get specific user search response
+    public query func get_search(request:Text):async Result.Result<History,Text>{
+
+      switch(hist.get(request)){
+        case (null){
+          return #err("not found")
+        };
+        case (?found){
+          return #ok(found)
+        }
+      }
+    };
+
 //clear all history
 
 public shared ({caller}) func clear_history():async Text{
@@ -107,6 +126,3 @@ public shared ({caller}) func clear_history():async Text{
 }
 };
 
-//create user array
-//add response request
-//clear history

@@ -1,43 +1,85 @@
 import React, { useState } from "react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import AuthButton from "../auth/authbutton";
 import { travel_planner_backend } from "declarations/travel_planner_backend";
-import { useQueryCall, useUpdateCall } from "@ic-reactor/react";
+
 import { useAuth } from "../auth/authetication";
+import AuthButton2 from "../auth/button2";
 const MainPage = () => {
   const [activeTab, setActiveTab] = useState("search");
   const [user, setUser] = useState("");
+  const [userdata, setUserData] = useState([]);
   const [res, setResponse] = useState("");
   const { isAuthenticated, login, principal, logout } = useAuth();
+  travel_planner_backend.getAllHistory().then((result) => {
+    setUserData(result[0].history);
+  });
+
   const genAi = new GoogleGenerativeAI(
-    ""
+    process.env.API_KEY
   );
   travel_planner_backend.registeruser().then((result) => {});
 
-  const { data: count, refetch } = useQueryCall({
-    functionName: "getAllHistory",
-  });
-  console.log("count", count);
+  const prompt = `You are a travel expert. Answer the following question with detailed and helpful advice, providing recommendations, tips, and insights tailored to the context and preferences described. Be informative, engaging, and practical.${user}`;
 
-  const prompt = `You are a travel expert. Answer the following question with detailed and helpful advice, providing recommendations, tips, and insights tailored to the context and preferences described. Be informative, engaging, and practical.${user} should be less than 300 words`;
-  
   const handleSubmmit = async (e) => {
     e.preventDefault();
-    const model = genAi.getGenerativeModel({ model: "gemini-pro" });
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
-    setResponse(text);
-    travel_planner_backend.enter_user_search("data","there").then((result) => {
-      console.log("result",result)
-    });
 
+    //lets wrap the functionj in a try catch
+    try {
+      const model = genAi.getGenerativeModel({ model: "gemini-pro" });
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+
+      if (!response) {
+        alert("failed");
+        return;
+      }
+      const text = response.text();
+      setResponse(text);
+
+      //update users history
+      await travel_planner_backend
+        .enter_user_search(user, text)
+        .then((result) => {
+          console.log("result", result);
+        });
+
+      //get users history
+
+      const usershistory = await travel_planner_backend
+        .getAllHistory()
+        .then((result) => {
+          console.log("history", result);
+        });
+      setUserData(usershistory[0].history);
+    } catch (err) {
+      console.log(err, "error catch");
+    }
+  };
+
+  //function to handle history clearing
+
+  const handleHistoryClearing = async () => {
+    try {
+      await travel_planner_backend.clear_history().then((result) => {});
+
+      //get users history
+
+      const usershistory = await travel_planner_backend
+        .getAllHistory()
+        .then((result) => {});
+      setUserData(usershistory[0].history);
+    } catch (err) {
+      console.log("clear history", err);
+    }
+      setResponse("");
+      setUser("")
   };
   return (
     <div className="main-container">
       <header className="main-header">
         <div className="logo">Travel AI</div>
-        <AuthButton />
+        <AuthButton2 />
       </header>
       {isAuthenticated ? (
         <div className="main-content">
@@ -49,19 +91,30 @@ const MainPage = () => {
             >
               History
             </button>
-            {/* 
-             <div className="">
-    
-               {
-                count.length==1?(
-                  <>
-                    <p className="">no history</p>
-                  </>
-                ):(
-                  <div className=""></div>
-                )
-              }
-             </div> */}
+
+            <div className="">
+              {userdata.length == 0 ? (
+                <>
+                  <p className="">no history</p>
+                </>
+              ) : (
+                <div className="">
+                  {userdata.map((val, index) => (
+                    <p
+                      key={index}
+                      className="history-item dc"
+                      onClick={() => setResponse(val.response)}
+                    >
+                      {val.request}
+                    </p>
+                  ))}
+
+                  <button className="" onClick={handleHistoryClearing}>
+                    clear all
+                  </button>
+                </div>
+              )}
+            </div>
           </nav>
 
           <div className="content-area">
