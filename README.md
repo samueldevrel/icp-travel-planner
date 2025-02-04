@@ -10,7 +10,7 @@ cd icp-travel-planner
 npm install
 ```
 
-navaigate to google gemini and get api key the
+Get your google gemini api key then
 
 ```
  cd src/travel_planner_frontend
