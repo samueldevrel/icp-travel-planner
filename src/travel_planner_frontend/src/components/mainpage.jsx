@@ -26,7 +26,7 @@ const MainPage = () => {
 
     //lets wrap the functionj in a try catch
     try {
-      const model = genAi.getGenerativeModel({ model: "gemini-pro" });
+      const model = genAi.getGenerativeModel({ model: "gemini-2.0-flash" });
       const result = await model.generateContent(prompt);
       const response = result.response;
 
